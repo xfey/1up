@@ -139,7 +139,7 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     private func refresh(advanceCopy: Bool = false, replenished: Gauge? = nil, resetAnimations: Bool = false) {
         let uptime = ProcessInfo.processInfo.systemUptime
-        let levels = tracker.state.onboardingComplete ? tracker.visibleLevels(uptime: uptime) : Levels()
+        let levels = tracker.state.onboardingComplete ? tracker.visibleLevels : Levels()
         theme = levels.theme(current: theme)
         let displayTheme = uptime < feedbackUntil ? "happy" : theme
         let value = Gauge(rawValue: displayTheme).map { levels[$0] } ?? 0

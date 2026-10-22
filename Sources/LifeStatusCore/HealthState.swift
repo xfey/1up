@@ -18,6 +18,7 @@ public enum Gauge: String, Codable, CaseIterable, Sendable {
 }
 
 public enum Rules {
+    public static let levelUpdateInterval: TimeInterval = 5 * 60
     public static let restThreshold: TimeInterval = 15 * 60
     public static let emptyGrace: TimeInterval = 30 * 60
     public static let feedbackDuration: TimeInterval = 1.2

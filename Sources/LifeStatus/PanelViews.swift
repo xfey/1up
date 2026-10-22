@@ -9,7 +9,7 @@ class FlippedView: NSView {
 
 final class GaugeView: FlippedView {
     let gauge: Gauge
-    var amount: Double = 10 { didSet { needsDisplay = true } }
+    var amount: Double = 10 { didSet { if amount != oldValue { needsDisplay = true } } }
     var infusing = false
     init(gauge: Gauge, frame: NSRect) {
         self.gauge = gauge; super.init(frame: frame)
@@ -93,7 +93,7 @@ final class InstrumentView: FlippedView {
         let now = ProcessInfo.processInfo.systemUptime
         let reduced = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         for gauge in Gauge.allCases {
-            let row = rows[gauge]!, target = ceil(levels[gauge] / 10)
+            let row = rows[gauge]!, target = levels[gauge] / 10
             row.setAccessibilityValue("\(Int(levels[gauge].rounded()))%")
             if replenished == gauge && !reduced && target > row.amount {
                 infusions[gauge] = Infusion(from: row.amount, target: target, start: now, duration: 0.48 + min(6, target - row.amount) * 0.04)

@@ -40,19 +40,24 @@ func renderPreviews(to directory: URL) throws {
         try bitmap.representation(using: .png, properties: [:])!.write(to: directory.appendingPathComponent("menu-\(theme).png"))
     }
     let animationPanel = InstrumentView()
+    let fiveMinutes = Levels().decayed(by: Rules.levelUpdateInterval)
+    animationPanel.update(levels: fiveMinutes, state: state, copy: "喝杯水", streakTip: "")
+    let water = animationPanel.subviews.compactMap { $0 as? GaugeView }.first { $0.gauge == .water }!
+    precondition(abs(water.amount - 9.7222222222) < 0.000001, "Five minutes of water decay must show a partial block")
+    try save(animationPanel, name: "five-minute-decay.png", dark: false)
     animationPanel.update(levels: Levels(hp: 70, water: 0, san: 50), state: state, copy: "爱你老己", streakTip: "")
     let row = animationPanel.subviews.compactMap { $0 as? GaugeView }.first { $0.gauge == .water }!
     animationPanel.update(levels: Levels(hp: 70, water: 100 / 3, san: 50), state: state, copy: "爱你老己", streakTip: "", replenished: .water)
     if !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
         precondition(row.amount == 0, "Refill must start from the visible value")
         RunLoop.main.run(until: Date().addingTimeInterval(0.12))
-        precondition(row.amount > 0 && row.amount < 4, "Refill must have intermediate frames")
+        precondition(row.amount > 0 && row.amount < 10.0 / 3, "Refill must have intermediate frames")
         let intermediate = row.amount
         animationPanel.update(levels: Levels(hp: 70, water: 200 / 3, san: 50), state: state, copy: "爱你老己", streakTip: "", replenished: .water)
         precondition(row.amount == intermediate, "Rapid clicks must continue without jumping")
         RunLoop.main.run(until: Date().addingTimeInterval(0.85))
-        precondition(row.amount == 7)
+        precondition(abs(row.amount - 20.0 / 3) < 0.000001)
         precondition(animationPanel.subviews.compactMap { $0 as? PaddleButton }.allSatisfy { $0.travel == 0 })
-    } else { precondition(row.amount == 4, "Reduced motion must update immediately") }
+    } else { precondition(abs(row.amount - 10.0 / 3) < 0.000001, "Reduced motion must update immediately") }
     print("Native previews rendered; copy, paddles, refill continuity, hidden streak and template icons checked.")
 }

@@ -83,7 +83,7 @@ final class HealthStateTests: XCTestCase {
         var state = fresh(); state.levels = Levels(hp: 10, water: 20, san: 30)
         var tracker = ActivityTracker(state: state, now: date(), uptime: 0, calendar: calendar)
         tracker.sample(now: date().addingTimeInterval(15 * 60), uptime: 15 * 60, idle: 15 * 60, calendar: calendar)
-        XCTAssertTrue(tracker.resting); XCTAssertEqual(tracker.visibleLevels(uptime: 1900), Levels())
+        XCTAssertTrue(tracker.resting); XCTAssertEqual(tracker.visibleLevels, Levels())
         XCTAssertFalse(tracker.state.usedToday)
     }
     func testSleepPausesWorkAndPreservesConfirmedFailure() {
@@ -91,7 +91,7 @@ final class HealthStateTests: XCTestCase {
         var tracker = ActivityTracker(state: state, now: date(), uptime: 0, calendar: calendar)
         tracker.suspend(now: date(), uptime: 0, calendar: calendar)
         tracker.sample(now: date().addingTimeInterval(5000), uptime: 5000, idle: 0, calendar: calendar)
-        XCTAssertEqual(tracker.visibleLevels(uptime: 5000), Levels())
+        XCTAssertEqual(tracker.visibleLevels, Levels())
         tracker.resume(now: date().addingTimeInterval(5000), uptime: 5000, calendar: calendar)
         XCTAssertTrue(tracker.state.failedToday); XCTAssertEqual(tracker.state.levels, Levels())
     }
@@ -100,7 +100,7 @@ final class HealthStateTests: XCTestCase {
         let saved = try JSONEncoder().encode(state)
         let restored = try JSONDecoder().decode(HealthState.self, from: saved)
         let tracker = ActivityTracker(state: restored, now: date().addingTimeInterval(3600), uptime: 9000, calendar: calendar)
-        XCTAssertEqual(tracker.visibleLevels(uptime: 9000), state.levels)
+        XCTAssertEqual(tracker.visibleLevels, state.levels)
     }
     func testAlreadyIdleAtLaunchRestoresImmediately() {
         var state = fresh(); state.levels = Levels(hp: 10, water: 20, san: 30)

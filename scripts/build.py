@@ -14,7 +14,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 DIST = ROOT / 'dist'
 VERSION = '0.1.0'
-BUILD_NUMBER = '3'
+BUILD_NUMBER = '4'
 APP_NAME = '1UP'
 
 def run(*args, **kwargs):
