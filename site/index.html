@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <meta name="description" content="1UP，一个安静待在 macOS 菜单栏的补给站。起身、喝水、远眺，给自己续一格。">
+    <title>1UP — 给自己续一格</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="style.css">
+    <script src="demo.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <h1>1UP</h1>
+
+      <figure class="demo" aria-label="1UP 交互演示">
+        <div class="device">
+          <div class="chassis">
+            <div class="screen" aria-hidden="true"></div>
+            <div class="row" data-gauge="hp" style="--row: 0">
+              <svg class="gauge-icon" viewBox="0 0 16 16" aria-hidden="true"></svg>
+              <div class="meter" role="progressbar" aria-label="HP" aria-valuemin="0" aria-valuemax="100" aria-valuenow="70"></div>
+              <button class="paddle" type="button" aria-label="起身走一走，恢复 HP" title="起身走一走">
+                <span class="track"></span><span class="grip"></span>
+              </button>
+            </div>
+            <div class="row" data-gauge="water" style="--row: 1">
+              <svg class="gauge-icon" viewBox="0 0 16 16" aria-hidden="true"></svg>
+              <div class="meter" role="progressbar" aria-label="水分" aria-valuemin="0" aria-valuemax="100" aria-valuenow="30"></div>
+              <button class="paddle" type="button" aria-label="喝一杯水，补充三分之一水分" title="喝一杯水">
+                <span class="track"></span><span class="grip"></span>
+              </button>
+            </div>
+            <div class="row" data-gauge="san" style="--row: 2">
+              <svg class="gauge-icon" viewBox="0 0 16 16" aria-hidden="true"></svg>
+              <div class="meter" role="progressbar" aria-label="SAN" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50"></div>
+              <button class="paddle" type="button" aria-label="远眺一会儿，恢复 SAN" title="远眺一会儿">
+                <span class="track"></span><span class="grip"></span>
+              </button>
+            </div>
+            <div class="device-footer">
+              <span class="message">喝杯水</span>
+              <span class="streak" role="img" aria-label="连续达标，点亮连胜小火苗" title="连续达标，点亮连胜小火苗">
+                <svg viewBox="0 0 12 13" aria-hidden="true"></svg>
+              </span>
+            </div>
+          </div>
+        </div>
+        <figcaption>拨一下，补给自己。<span>演示时间已加速</span></figcaption>
+      </figure>
+
+      <div class="description">
+        <p class="actions">起身 · 喝水 · 远眺</p>
+        <p>安静常驻菜单栏，休息自动回满。<br>连续保持好状态，点亮小火苗。</p>
+      </div>
+
+      <footer>
+        <span>macOS 14+</span><span aria-hidden="true">·</span>
+        <a href="https://github.com/xfey/1up" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+      </footer>
+      <p class="sr-only" role="status" aria-live="polite" id="feedback"></p>
+      <noscript><p class="no-script">启用 JavaScript 即可试用补给拨片。</p></noscript>
+    </main>
+  </body>
+</html>

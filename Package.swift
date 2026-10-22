@@ -3,7 +3,7 @@ import PackageDescription
 import Foundation
 
 let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
-let appExcludes = ["assets", "Tests", "scripts", "dist", "Sources/LifeStatusCore", "README.md", "LICENSE"]
+let appExcludes = ["assets", "site", "Tests", "scripts", "dist", "Sources/LifeStatusCore", "README.md", "LICENSE"]
     .filter { FileManager.default.fileExists(atPath: root.appendingPathComponent($0).path) }
 
 let package = Package(
