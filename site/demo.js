@@ -4,7 +4,6 @@
   // Standalone browser demo. No storage, analytics, fonts, or network requests.
   // The app's 45 / 180 / 20 minute cycles are shown at 360× speed here.
   const speed = 360;
-  const updateInterval = 5 * 60 * 1000 / speed;
   const flightDuration = 3200;
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
   const stage = document.querySelector(".stage");
@@ -45,7 +44,7 @@
 
   const settings = {
     hp: { value: 70, minutes: 45, action: "起身走一走", label: "HP", period: 6000, nextHit: 4400 },
-    water: { value: 30, minutes: 180, action: "喝一杯水", label: "水分", period: 10000, nextHit: 3200, continuous: true },
+    water: { value: 30, minutes: 180, action: "喝一杯水", label: "水分", period: 10000, nextHit: 3200 },
     san: { value: 50, minutes: 20, action: "远眺一会儿", label: "SAN", period: 4000, nextHit: 1200 },
   };
   const gauges = Object.entries(settings).map(([id, config]) => {
@@ -88,7 +87,6 @@
   let feedbackIndex = 0;
   let lastFrame = performance.now();
   let demoTime = 0;
-  let nextUpdate = updateInterval;
   let playing = !reducedMotion.matches;
   const easeOut = t => 1 - (1 - t) ** 3;
 
@@ -148,24 +146,12 @@
           gauge.nextHit += gauge.period;
         }
       }
-      if (demoTime >= nextUpdate) {
-        for (const gauge of gauges) {
-          // Let a refill finish before publishing the next decay snapshot.
-          if (!gauge.continuous && !gauge.infusion) {
-            gauge.displayed = gauge.value;
-            gauge.shown = gauge.displayed / 10;
-          }
-        }
-        nextUpdate += (Math.floor((demoTime - nextUpdate) / updateInterval) + 1) * updateInterval;
-      }
       positionNotes();
     }
     let active = false;
     for (const gauge of gauges) {
-      if (gauge.continuous) {
-        gauge.displayed = gauge.value;
-        if (!gauge.infusion) gauge.shown = gauge.displayed / 10;
-      }
+      gauge.displayed = gauge.value;
+      if (!gauge.infusion) gauge.shown = gauge.displayed / 10;
       if (gauge.impactStart !== null) {
         const t = Math.max(0, Math.min(1, (now - gauge.impactStart) / 320));
         gauge.impact.style.opacity = (1 - t) ** 2;
@@ -175,10 +161,8 @@
       if (gauge.infusion) {
         const job = gauge.infusion;
         const t = Math.max(0, Math.min(1, (now - job.start) / job.duration));
-        // Water keeps decaying during a refill, so its finish has no downward jump.
-        gauge.shown = gauge.continuous
-          ? gauge.displayed / 10 - (job.target - job.from) * (1 - easeOut(t))
-          : job.from + (job.target - job.from) * easeOut(t);
+        // Keep decaying during a refill, so its finish has no downward jump.
+        gauge.shown = gauge.displayed / 10 - (job.target - job.from) * (1 - easeOut(t));
         if (t >= 1) { gauge.infusion = null; gauge.shown = gauge.displayed / 10; }
       }
       if (gauge.paddle) {

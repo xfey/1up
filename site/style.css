@@ -256,17 +256,16 @@ h1 {
 
 figcaption {
   width: var(--device-width);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  margin-top: 16px;
+  margin-top: 20px;
   font-size: 11px;
   line-height: 1.7;
   color: var(--secondary);
 }
 
+figcaption .tagline { margin: 0 0 4px; font-size: 13px; color: var(--text); }
 figcaption span { color: var(--muted); }
+
+.demo-hint { display: flex; align-items: center; justify-content: center; gap: 4px; }
 
 .playback {
   display: grid;
@@ -297,9 +296,6 @@ figcaption span { color: var(--muted); }
   font-size: 13px;
   line-height: 1.9;
 }
-
-.description p { margin: 0; }
-.description .actions { color: var(--text); margin-bottom: 18px; }
 
 .download {
   display: inline-flex;
