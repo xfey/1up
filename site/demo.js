@@ -2,10 +2,14 @@
   "use strict";
 
   // Standalone browser demo. No storage, analytics, fonts, or network requests.
-  // The app's 45 / 180 / 20 minute cycles are shown at 20× speed here.
-  const speed = 20;
+  // The app's 45 / 180 / 20 minute cycles are shown at 360× speed here.
+  const speed = 360;
   const updateInterval = 5 * 60 * 1000 / speed;
+  const flightDuration = 3200;
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+  const stage = document.querySelector(".stage");
+  const lanes = document.querySelector(".lanes");
+  const playback = document.querySelector(".playback");
   const message = document.querySelector(".message");
   const feedback = document.querySelector("#feedback");
   const copy = {
@@ -40,12 +44,12 @@
   }
 
   const settings = {
-    hp: { value: 70, minutes: 45, action: "起身走一走", label: "HP" },
-    water: { value: 30, minutes: 180, action: "喝一杯水", label: "水分" },
-    san: { value: 50, minutes: 20, action: "远眺一会儿", label: "SAN" },
+    hp: { value: 70, minutes: 45, action: "起身走一走", label: "HP", period: 6000, nextHit: 4400 },
+    water: { value: 30, minutes: 180, action: "喝一杯水", label: "水分", period: 10000, nextHit: 3200 },
+    san: { value: 50, minutes: 20, action: "远眺一会儿", label: "SAN", period: 4000, nextHit: 1200 },
   };
   const gauges = Object.entries(settings).map(([id, config]) => {
-    const row = document.querySelector(`[data-gauge="${id}"]`);
+    const row = document.querySelector(`.row[data-gauge="${id}"]`);
     const meter = row.querySelector(".meter");
     pixels(row.querySelector("svg"), patterns[id]);
     const cells = Array.from({ length: 10 }, () => {
@@ -58,7 +62,16 @@
       meter.append(cell);
       return fill;
     });
-    const gauge = { ...config, id, row, meter, cells, displayed: config.value, shown: config.value / 10, infusion: null, paddle: null, travel: 0 };
+    const lane = document.createElement("div");
+    lane.className = "lane";
+    const note = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    note.setAttribute("class", "note");
+    note.setAttribute("viewBox", "0 0 16 16");
+    note.dataset.gauge = id;
+    pixels(note, patterns[id]);
+    // One reusable note per lane: there can never be more than three.
+    lanes.append(lane, note);
+    const gauge = { ...config, id, row, meter, cells, lane, note, displayed: config.value, shown: config.value / 10, infusion: null, paddle: null, travel: 0 };
     row.querySelector("button").addEventListener("click", () => replenish(gauge));
     return gauge;
   });
@@ -67,9 +80,10 @@
   let frame = 0;
   let happyUntil = 0;
   let feedbackIndex = 0;
-  let lastTick = performance.now();
-  let nextUpdate = lastTick + updateInterval;
-  let pausedAt = 0;
+  let lastFrame = performance.now();
+  let demoTime = 0;
+  let nextUpdate = updateInterval;
+  let playing = !reducedMotion.matches;
   const easeOut = t => 1 - (1 - t) ** 3;
 
   function draw(gauge) {
@@ -88,7 +102,7 @@
     message.textContent = copy[gauges.every(g => g.displayed <= 0) ? "empty" : lowest.displayed < 40 ? lowest.id : "normal"];
   }
 
-  function replenish(gauge) {
+  function replenish(gauge, automatic = false) {
     const now = performance.now();
     gauge.value = gauge.id === "water" ? Math.min(100, gauge.value + 100 / 3) : 100;
     gauge.displayed = gauge.value;
@@ -103,16 +117,42 @@
         duration: 480 + Math.min(6, target - gauge.shown) * 40,
       } : null;
       gauge.paddle = { start: now, from: gauge.travel };
-      if (!frame) frame = requestAnimationFrame(animate);
     }
     message.textContent = copy.happy[feedbackIndex++ % copy.happy.length];
     happyUntil = now + 1200;
-    feedback.textContent = `${gauge.action}，${gauge.label}已补充至 ${Math.round(gauge.value)}%。`;
+    if (!automatic) {
+      feedback.textContent = `${gauge.action}，${gauge.label}已补充至 ${Math.round(gauge.value)}%。`;
+      requestTick();
+    }
     draw(gauge);
   }
 
   function animate(now) {
     frame = 0;
+    // Freeze time when paused/hidden. Cap a stalled frame to avoid catch-up bursts.
+    const elapsed = Math.max(0, Math.min(100, now - lastFrame));
+    lastFrame = now;
+    if (playing) {
+      demoTime += elapsed;
+      for (const gauge of gauges) {
+        gauge.value = Math.max(0, gauge.value - elapsed / 1000 * speed * 100 / (gauge.minutes * 60));
+        if (demoTime >= gauge.nextHit) {
+          replenish(gauge, true);
+          gauge.nextHit += gauge.period;
+        }
+      }
+      if (demoTime >= nextUpdate) {
+        for (const gauge of gauges) {
+          // Let a refill finish before publishing the next decay snapshot.
+          if (!gauge.infusion) {
+            gauge.displayed = gauge.value;
+            gauge.shown = gauge.displayed / 10;
+          }
+        }
+        nextUpdate += (Math.floor((demoTime - nextUpdate) / updateInterval) + 1) * updateInterval;
+      }
+      positionNotes();
+    }
     let active = false;
     for (const gauge of gauges) {
       if (gauge.infusion) {
@@ -136,12 +176,11 @@
       draw(gauge);
       active ||= Boolean(gauge.infusion || gauge.paddle);
     }
-    if (active) frame = requestAnimationFrame(animate);
+    updateMessage(now);
+    if (playing || active || now < happyUntil) frame = requestAnimationFrame(animate);
   }
 
   function settleAnimations() {
-    if (frame) cancelAnimationFrame(frame);
-    frame = 0;
     for (const gauge of gauges) {
       gauge.shown = gauge.displayed / 10;
       gauge.infusion = gauge.paddle = null;
@@ -150,37 +189,76 @@
     }
   }
 
-  setInterval(() => {
-    const now = performance.now();
-    const elapsed = (now - lastTick) / 1000;
-    lastTick = now;
-    if (document.hidden) return;
+  function requestTick() {
+    if (frame || document.hidden) return;
+    lastFrame = performance.now();
+    frame = requestAnimationFrame(animate);
+  }
+
+  function positionNotes() {
     for (const gauge of gauges) {
-      gauge.value = Math.max(0, gauge.value - elapsed * speed * 100 / (gauge.minutes * 60));
+      if (!gauge.geometry) continue;
+      const remaining = gauge.nextHit - demoTime;
+      const visible = remaining > 0 && remaining <= flightDuration;
+      gauge.note.style.display = visible ? "" : "none";
+      if (!visible) continue;
+      const t = 1 - remaining / flightDuration;
+      const { x, y, startX, startY, size } = gauge.geometry;
+      const left = startX + (x - startX) * t - size / 2;
+      const top = startY + (y - startY) * t - size / 2;
+      gauge.note.style.transform = `translate3d(${left}px, ${top}px, 0)`;
+      gauge.note.style.opacity = Math.min(1, t / .12);
     }
-    if (now >= nextUpdate) {
-      for (const gauge of gauges) {
-        gauge.displayed = gauge.value;
-        if (!gauge.infusion) gauge.shown = gauge.displayed / 10;
-        draw(gauge);
-      }
-      nextUpdate += (Math.floor((now - nextUpdate) / updateInterval) + 1) * updateInterval;
+  }
+
+  function measureLanes() {
+    const bounds = stage.getBoundingClientRect();
+    const device = document.querySelector(".device").getBoundingClientRect();
+    const size = Math.max(20, Math.min(32, device.width * 16 / 205));
+    const vertical = matchMedia("(max-width: 600px)").matches;
+    for (const [index, gauge] of gauges.entries()) {
+      const button = gauge.row.querySelector("button").getBoundingClientRect();
+      const x = vertical ? device.left - bounds.left + device.width * (index + 1) / 4 : button.left + button.width / 2 - bounds.left;
+      const y = vertical ? device.top - bounds.top : button.top + button.height / 2 - bounds.top;
+      gauge.geometry = { x, y, startX: vertical ? x : bounds.width - size / 2, startY: vertical ? size / 2 : y, size };
+      Object.assign(gauge.lane.style, {
+        left: `${x}px`, top: vertical ? "0" : `${y}px`,
+        width: vertical ? "1px" : `${bounds.width - x}px`, height: vertical ? `${y}px` : "1px",
+      });
+      Object.assign(gauge.note.style, { width: `${size}px`, height: `${size}px` });
     }
-    updateMessage(now);
-  }, 250);
+    positionNotes();
+  }
+
+  function updatePlayback() {
+    playback.classList.toggle("is-paused", !playing);
+    const label = playing ? "暂停自动演示" : "播放自动演示";
+    playback.setAttribute("aria-label", label);
+    playback.title = label;
+    requestTick();
+  }
 
   document.addEventListener("visibilitychange", () => {
-    lastTick = performance.now();
     if (document.hidden) {
-      pausedAt = lastTick;
+      if (frame) cancelAnimationFrame(frame);
+      frame = 0;
       settleAnimations();
-    } else if (pausedAt) {
-      nextUpdate += lastTick - pausedAt;
-      pausedAt = 0;
-    }
+    } else requestTick();
+  });
+  playback.addEventListener("click", () => {
+    playing = !playing;
+    updatePlayback();
   });
   reducedMotion.addEventListener("change", () => {
-    if (reducedMotion.matches) settleAnimations();
+    if (reducedMotion.matches) {
+      playing = false;
+      settleAnimations();
+      updatePlayback();
+    }
   });
+  new ResizeObserver(measureLanes).observe(stage);
+  measureLanes();
+  playback.hidden = false;
+  updatePlayback();
   gauges.forEach(draw);
 })();

@@ -1,5 +1,9 @@
 # 1UP
 
+<p align="center">
+  <img src="assets/console-preview.png" alt="1UP 操作台：HP、水分、SAN 三条状态与补给拨片" width="506">
+</p>
+
 一个常驻 macOS 菜单栏的健康习惯小工具。用 HP、水分、SAN 三条状态提醒起身、喝水和远眺，休息后自动恢复；只有安静提示，没有通知。
 
 支持 macOS 14 及以上，Apple Silicon 与 Intel。安装时将 `1UP.app` 拖入 Applications；点击菜单栏图标打开面板，右键可设置登录启动、编辑文案或退出。

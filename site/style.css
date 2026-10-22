@@ -29,12 +29,14 @@ body {
 }
 
 main {
-  width: min(100%, 458px);
+  --device-width: clamp(220px, calc((100vw - 48px) * .54), 410px);
+  width: min(100%, 808px);
   padding: 64px 24px 76px;
   text-align: center;
 }
 
 h1 {
+  width: var(--device-width);
   margin: 0 0 32px;
   font: 700 25px/1 ui-monospace, "SFMono-Regular", Menlo, monospace;
   letter-spacing: -1.6px;
@@ -42,9 +44,37 @@ h1 {
 
 .demo { margin: 0; }
 
+.stage { position: relative; }
+
+.lanes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.lane {
+  position: absolute;
+  height: 1px;
+  background: linear-gradient(to right, var(--secondary), transparent);
+  opacity: .2;
+}
+
+.note {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  color: var(--accent);
+  shape-rendering: crispEdges;
+  will-change: transform;
+}
+
+[data-gauge="hp"] { --accent: #d99078; }
+
 .device {
   position: relative;
-  width: 100%;
+  z-index: 1;
+  width: var(--device-width);
   aspect-ratio: 205 / 128;
   container-type: inline-size;
   text-align: left;
@@ -214,10 +244,12 @@ h1 {
 }
 
 figcaption {
+  width: var(--device-width);
   display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 12px;
-  margin-top: 20px;
+  gap: 4px;
+  margin-top: 16px;
   font-size: 11px;
   line-height: 1.7;
   color: var(--secondary);
@@ -225,21 +257,59 @@ figcaption {
 
 figcaption span { color: var(--muted); }
 
+.playback {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 6px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--secondary);
+  cursor: pointer;
+}
+
+.playback[hidden] { display: none; }
+.playback svg { width: 16px; height: 16px; }
+.pause-symbol { fill: none; stroke: currentColor; stroke-width: 2; }
+.play-symbol { display: none; fill: currentColor; }
+.playback.is-paused .pause-symbol { display: none; }
+.playback.is-paused .play-symbol { display: block; }
+.playback:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+.playback:focus-visible { outline: 1px solid currentColor; }
+
 .description {
-  margin-top: 32px;
+  width: var(--device-width);
+  margin-top: 22px;
   color: var(--secondary);
   font-size: 13px;
   line-height: 1.9;
 }
 
 .description p { margin: 0; }
-.description .actions { color: var(--text); margin-bottom: 7px; }
+.description .actions { color: var(--text); margin-bottom: 18px; }
+
+.download {
+  display: inline-flex;
+  align-items: center;
+  gap: 22px;
+  padding: 9px 16px;
+  border: 1px solid color-mix(in srgb, var(--secondary) 30%, transparent);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.download:hover { background: color-mix(in srgb, var(--text) 4%, transparent); }
 
 footer {
+  width: var(--device-width);
   display: flex;
   justify-content: center;
   gap: 10px;
-  margin-top: 28px;
+  margin-top: 18px;
   font-size: 11px;
   line-height: 1.7;
   color: var(--muted);
@@ -261,9 +331,20 @@ a:focus-visible { outline: 1px solid currentColor; outline-offset: 4px; }
 
 .no-script { font-size: 12px; color: var(--secondary); }
 
+@media (max-width: 600px) {
+  main {
+    --device-width: 100%;
+    width: min(100%, 458px);
+    padding-block: 40px 48px;
+  }
+  h1 { margin-bottom: 24px; }
+  .stage { padding-top: 120px; }
+  .lane { background: linear-gradient(to bottom, transparent, var(--secondary)); }
+}
+
 @media (max-width: 380px) {
   main { padding-inline: 16px; }
-  figcaption { gap: 8px; font-size: 10px; }
+  figcaption { font-size: 10px; }
 }
 
 @media (prefers-color-scheme: dark) {
