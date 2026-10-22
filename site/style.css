@@ -69,6 +69,17 @@ h1 {
   will-change: transform;
 }
 
+.impact {
+  position: absolute;
+  z-index: 3;
+  width: 24px;
+  height: 24px;
+  color: var(--accent);
+  shape-rendering: crispEdges;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(.35);
+}
+
 [data-gauge="hp"] { --accent: #d99078; }
 
 .device {

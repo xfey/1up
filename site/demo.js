@@ -69,9 +69,15 @@
     note.setAttribute("viewBox", "0 0 16 16");
     note.dataset.gauge = id;
     pixels(note, patterns[id]);
+    const impact = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    impact.setAttribute("class", "impact");
+    impact.setAttribute("viewBox", "0 0 24 24");
+    impact.dataset.gauge = id;
+    impact.innerHTML = '<path fill="currentColor" d="M10 1h4v5h-4z M18 10h5v4h-5z M10 18h4v5h-4z M1 10h5v4H1z"/>';
     // One reusable note per lane: there can never be more than three.
-    lanes.append(lane, note);
-    const gauge = { ...config, id, row, meter, cells, lane, note, displayed: config.value, shown: config.value / 10, infusion: null, paddle: null, travel: 0 };
+    lanes.append(lane, note, impact);
+    const symbol = note.getBBox();
+    const gauge = { ...config, id, row, meter, cells, lane, note, symbol, impact, impactStart: null, displayed: config.value, shown: config.value / 10, infusion: null, paddle: null, travel: 0 };
     row.querySelector("button").addEventListener("click", () => replenish(gauge));
     return gauge;
   });
@@ -138,6 +144,7 @@
         gauge.value = Math.max(0, gauge.value - elapsed / 1000 * speed * 100 / (gauge.minutes * 60));
         if (demoTime >= gauge.nextHit) {
           replenish(gauge, true);
+          gauge.impactStart = reducedMotion.matches ? null : now;
           gauge.nextHit += gauge.period;
         }
       }
@@ -155,6 +162,12 @@
     }
     let active = false;
     for (const gauge of gauges) {
+      if (gauge.impactStart !== null) {
+        const t = Math.max(0, Math.min(1, (now - gauge.impactStart) / 320));
+        gauge.impact.style.opacity = (1 - t) ** 2;
+        gauge.impact.style.transform = `translate(-50%, -50%) scale(${.35 + easeOut(t) * .8})`;
+        if (t >= 1) gauge.impactStart = null;
+      }
       if (gauge.infusion) {
         const job = gauge.infusion;
         const t = Math.max(0, Math.min(1, (now - job.start) / job.duration));
@@ -174,7 +187,7 @@
         }
       }
       draw(gauge);
-      active ||= Boolean(gauge.infusion || gauge.paddle);
+      active ||= Boolean(gauge.infusion || gauge.paddle || gauge.impactStart !== null);
     }
     updateMessage(now);
     if (playing || active || now < happyUntil) frame = requestAnimationFrame(animate);
@@ -184,6 +197,8 @@
     for (const gauge of gauges) {
       gauge.shown = gauge.displayed / 10;
       gauge.infusion = gauge.paddle = null;
+      gauge.impactStart = null;
+      gauge.impact.style.opacity = 0;
       gauge.travel = 0;
       draw(gauge);
     }
@@ -218,13 +233,17 @@
     const vertical = matchMedia("(max-width: 600px)").matches;
     for (const [index, gauge] of gauges.entries()) {
       const button = gauge.row.querySelector("button").getBoundingClientRect();
-      const x = vertical ? device.left - bounds.left + device.width * (index + 1) / 4 : button.left + button.width / 2 - bounds.left;
-      const y = vertical ? device.top - bounds.top : button.top + button.height / 2 - bounds.top;
+      const edgeX = vertical ? device.left - bounds.left + device.width * (index + 1) / 4 : device.right - bounds.left;
+      const edgeY = vertical ? device.top - bounds.top : button.top + button.height / 2 - bounds.top;
+      // The visible leading pixel touches the casing, without entering it.
+      const x = vertical ? edgeX : edgeX + size * (.5 - gauge.symbol.x / 16);
+      const y = vertical ? edgeY + size * (.5 - (gauge.symbol.y + gauge.symbol.height) / 16) : edgeY;
       gauge.geometry = { x, y, startX: vertical ? x : bounds.width - size / 2, startY: vertical ? size / 2 : y, size };
       Object.assign(gauge.lane.style, {
-        left: `${x}px`, top: vertical ? "0" : `${y}px`,
-        width: vertical ? "1px" : `${bounds.width - x}px`, height: vertical ? `${y}px` : "1px",
+        left: `${edgeX}px`, top: vertical ? "0" : `${edgeY}px`,
+        width: vertical ? "1px" : `${bounds.width - edgeX}px`, height: vertical ? `${edgeY}px` : "1px",
       });
+      Object.assign(gauge.impact.style, { left: `${edgeX}px`, top: `${edgeY}px` });
       Object.assign(gauge.note.style, { width: `${size}px`, height: `${size}px` });
     }
     positionNotes();
