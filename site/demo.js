@@ -45,7 +45,7 @@
 
   const settings = {
     hp: { value: 70, minutes: 45, action: "起身走一走", label: "HP", period: 6000, nextHit: 4400 },
-    water: { value: 30, minutes: 180, action: "喝一杯水", label: "水分", period: 10000, nextHit: 3200 },
+    water: { value: 30, minutes: 180, action: "喝一杯水", label: "水分", period: 10000, nextHit: 3200, continuous: true },
     san: { value: 50, minutes: 20, action: "远眺一会儿", label: "SAN", period: 4000, nextHit: 1200 },
   };
   const gauges = Object.entries(settings).map(([id, config]) => {
@@ -151,7 +151,7 @@
       if (demoTime >= nextUpdate) {
         for (const gauge of gauges) {
           // Let a refill finish before publishing the next decay snapshot.
-          if (!gauge.infusion) {
+          if (!gauge.continuous && !gauge.infusion) {
             gauge.displayed = gauge.value;
             gauge.shown = gauge.displayed / 10;
           }
@@ -162,6 +162,10 @@
     }
     let active = false;
     for (const gauge of gauges) {
+      if (gauge.continuous) {
+        gauge.displayed = gauge.value;
+        if (!gauge.infusion) gauge.shown = gauge.displayed / 10;
+      }
       if (gauge.impactStart !== null) {
         const t = Math.max(0, Math.min(1, (now - gauge.impactStart) / 320));
         gauge.impact.style.opacity = (1 - t) ** 2;
@@ -171,7 +175,10 @@
       if (gauge.infusion) {
         const job = gauge.infusion;
         const t = Math.max(0, Math.min(1, (now - job.start) / job.duration));
-        gauge.shown = job.from + (job.target - job.from) * easeOut(t);
+        // Water keeps decaying during a refill, so its finish has no downward jump.
+        gauge.shown = gauge.continuous
+          ? gauge.displayed / 10 - (job.target - job.from) * (1 - easeOut(t))
+          : job.from + (job.target - job.from) * easeOut(t);
         if (t >= 1) { gauge.infusion = null; gauge.shown = gauge.displayed / 10; }
       }
       if (gauge.paddle) {
